@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sampleIdeas } from "@/lib/sample-data";
 import { createClient } from "@supabase/supabase-js";
 import { auth } from "@clerk/nextjs/server";
 
@@ -12,11 +11,9 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // First try to find in Supabase (for user-created ideas)
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Query ideas table directly - use maybeSingle to handle 0 or 1 results
     const { data: dbIdea, error } = await supabase
       .from('ideas')
       .select('*')
@@ -25,45 +22,40 @@ export async function GET(
     
     if (error) {
       console.error("Supabase query error:", error.message, error.code);
+      return NextResponse.json({ error: "Failed to fetch idea" }, { status: 500 });
     }
     
-    if (dbIdea) {
-      // Transform database idea to match frontend expected format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const idea = dbIdea as any;
-      
-      return NextResponse.json({
-        id: idea.id,
-        title: idea.title,
-        original_title: idea.original_title,
-        description: idea.description,
-        body_text: idea.body_text,
-        source: idea.source,
-        user_id: idea.user_id,
-        subreddit: idea.subreddit,
-        author: idea.reddit_author || 'User',
-        upvotes: idea.upvotes || 0,
-        downvotes: idea.downvotes || 0,
-        comments_count: idea.comments_count || 0,
-        created_at: idea.created_at,
-        post_url: idea.post_url,
-        thumbnail: idea.thumbnail,
-        market_potential_score: idea.market_potential_score ?? 0,
-        status: idea.status,
-      });
+    if (!dbIdea) {
+      return NextResponse.json({ error: "Idea not found" }, { status: 404 });
     }
+
+    // Transform database idea to match frontend expected format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const idea = dbIdea as any;
+    
+    return NextResponse.json({
+      id: idea.id,
+      title: idea.title,
+      original_title: idea.original_title,
+      description: idea.description,
+      body_text: idea.body_text,
+      source: idea.source,
+      user_id: idea.user_id,
+      subreddit: idea.subreddit,
+      author: idea.reddit_author || 'User',
+      upvotes: idea.upvotes || 0,
+      downvotes: idea.downvotes || 0,
+      comments_count: idea.comments_count || 0,
+      created_at: idea.created_at,
+      post_url: idea.post_url,
+      thumbnail: idea.thumbnail,
+      market_potential_score: idea.market_potential_score ?? 0,
+      status: idea.status,
+    });
   } catch (error) {
     console.error("Error fetching from Supabase:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  // Fallback to sample data (for Reddit-sourced mock ideas)
-  const idea = sampleIdeas.find((i) => i.id === id);
-
-  if (!idea) {
-    return NextResponse.json({ error: "Idea not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(idea);
 }
 
 export async function DELETE(

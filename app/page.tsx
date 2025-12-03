@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Script from "next/script";
 import type { Idea } from "@/lib/types";
@@ -9,9 +9,7 @@ import { AdvancedSearch } from "@/components/ui/advanced-search";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubreddit, setSelectedSubreddit] = useState("all");
-  const [selectedSource, setSelectedSource] = useState("all"); // reddit, user, or all
-  const [sortBy, setSortBy] = useState("popular");
+  const [sortBy, setSortBy] = useState("recent");
   const [minScore, setMinScore] = useState(0);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [topIdeas, setTopIdeas] = useState<Idea[]>([]);
@@ -21,19 +19,6 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Subreddits for filter
-  const subreddits = [
-    "all",
-    "r/startup",
-    "r/startupideas",
-    "r/Entrepreneur",
-    "r/sideproject",
-    "r/businessideas",
-    "r/EntrepreneurRideAlong",
-    "r/saas",
-    "r/smallbusiness",
-  ];
 
   const sortOptions = [
     { value: "popular", label: "Most Popular" },
@@ -83,8 +68,6 @@ export default function Home() {
         });
 
         if (searchQuery) params.append("search", searchQuery);
-        if (selectedSubreddit !== "all") params.append("subreddit", selectedSubreddit);
-        if (selectedSource !== "all") params.append("source", selectedSource);
         if (minScore > 0) params.append("minScore", minScore.toString());
 
         const response = await fetch(`/api/ideas?${params.toString()}`);
@@ -104,7 +87,7 @@ export default function Home() {
     };
 
     fetchIdeas();
-  }, [page, sortBy, selectedSubreddit, selectedSource, searchQuery, minScore]);
+  }, [page, sortBy, searchQuery, minScore]);
 
   // JSON-LD structured data for SEO
   const jsonLd = {
@@ -322,7 +305,7 @@ export default function Home() {
               />
             </svg>
             <span className="hidden sm:inline">Filters</span>
-            {(selectedSource !== "all" || selectedSubreddit !== "all" || minScore > 0) && (
+            {minScore > 0 && (
               <span className="flex h-2 w-2 rounded-full bg-accent"></span>
             )}
           </button>
@@ -344,43 +327,7 @@ export default function Home() {
         {/* Collapsible Filter Panel */}
         {showFilters && (
           <div className="mt-4 rounded-lg border border-border bg-surface p-4 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Source Filter */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-text-main">
-                  Source
-                </label>
-                <select
-                  value={selectedSource}
-                  onChange={(e) => setSelectedSource(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-main focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="all">All Sources</option>
-                  <option value="reddit">Reddit Ideas</option>
-                  <option value="user">Community Ideas</option>
-                </select>
-              </div>
-
-              {/* Subreddit Filter - Only show when Reddit is selected or All */}
-              {selectedSource !== "user" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-text-main">
-                    Subreddit
-                  </label>
-                  <select
-                    value={selectedSubreddit}
-                    onChange={(e) => setSelectedSubreddit(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-main focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    {subreddits.map((sub) => (
-                      <option key={sub} value={sub}>
-                        {sub === "all" ? "All Subreddits" : sub}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* Score Filter */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-text-main">
@@ -419,11 +366,9 @@ export default function Home() {
             </div>
 
             {/* Clear Filters Button */}
-            {(selectedSource !== "all" || selectedSubreddit !== "all" || minScore > 0) && (
+            {minScore > 0 && (
               <button
                 onClick={() => {
-                  setSelectedSource("all");
-                  setSelectedSubreddit("all");
                   setMinScore(0);
                 }}
                 className="text-sm text-accent transition-opacity hover:opacity-80"

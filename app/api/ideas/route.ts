@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sampleIdeas } from "@/lib/sample-data";
 import { createClerkSupabaseClient, ensureUserProfile } from "@/lib/supabase";
 import { createIdea } from "@/lib/supabase/queries/ideas";
 import { analyzeIdea } from "@/lib/ai/gemini";
@@ -16,14 +15,11 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "12");
   const sort = searchParams.get("sort") || "popular";
   const search = searchParams.get("search") || "";
-  const subreddit = searchParams.get("subreddit") || "";
-  const source = searchParams.get("source") || ""; // reddit, user, or all
   const minScore = parseInt(searchParams.get("minScore") || "0");
 
-  // Start with sample ideas (Reddit ideas)
-  let allIdeas: Idea[] = [...sampleIdeas];
+  // Fetch ideas from database only
+  let allIdeas: Idea[] = [];
 
-  // Fetch user-created ideas from database
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
@@ -35,9 +31,17 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching ideas from database:", error);
-    } else if (dbIdeas && dbIdeas.length > 0) {
+      return NextResponse.json({ 
+        ideas: [], 
+        totalPages: 0, 
+        currentPage: page, 
+        totalIdeas: 0 
+      });
+    }
+    
+    if (dbIdeas && dbIdeas.length > 0) {
       // Transform database ideas to match the Idea type
-      const transformedDbIdeas: Idea[] = dbIdeas.map(idea => ({
+      allIdeas = dbIdeas.map(idea => ({
         id: idea.id,
         title: idea.title,
         original_title: idea.original_title,
@@ -57,12 +61,15 @@ export async function GET(request: NextRequest) {
         market_potential_score: idea.market_potential_score ?? 50,
         status: idea.status,
       }));
-
-      // Add database ideas to the list
-      allIdeas = [...transformedDbIdeas, ...allIdeas];
     }
   } catch (error) {
     console.error("Error fetching from database:", error);
+    return NextResponse.json({ 
+      ideas: [], 
+      totalPages: 0, 
+      currentPage: page, 
+      totalIdeas: 0 
+    });
   }
 
   // Filter ideas
@@ -115,16 +122,6 @@ export async function GET(request: NextRequest) {
       .filter(item => item.relevanceScore > 0)
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .map(item => item.idea);
-  }
-
-  // Source filter
-  if (source && source !== "all") {
-    filteredIdeas = filteredIdeas.filter((idea) => idea.source === source);
-    }
-
-  // Subreddit filter
-  if (subreddit && subreddit !== "all") {
-    filteredIdeas = filteredIdeas.filter((idea) => idea.subreddit === subreddit);
   }
 
   // Min score filter

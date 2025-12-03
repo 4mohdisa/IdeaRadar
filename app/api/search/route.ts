@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { sampleIdeas } from "@/lib/sample-data"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -15,7 +14,7 @@ interface SearchResult {
 }
 
 /**
- * Advanced search endpoint that searches across both sample data and database
+ * Advanced search endpoint that searches the database
  * Supports multi-term search with relevance scoring
  */
 export async function GET(request: NextRequest) {
@@ -23,7 +22,6 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get("q") || ""
     const limit = parseInt(searchParams.get("limit") || "20")
-    const source = searchParams.get("source") || "all" // all, reddit, user
     const minScore = parseInt(searchParams.get("minScore") || "0")
 
     if (!query.trim()) {
@@ -38,12 +36,33 @@ export async function GET(request: NextRequest) {
 
     const results: SearchResult[] = []
 
-    // Search sample data
-    if (source === "all" || source === "reddit") {
-      for (const idea of sampleIdeas) {
-        if (source === "reddit" && idea.source !== "reddit") continue
-        if (idea.market_potential_score < minScore) continue
+    // Search database for ideas
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Build search query for Supabase
+    // Using ilike for case-insensitive search
+    let dbQuery = supabase
+      .from("ideas")
+      .select("id, title, description, body_text, source, market_potential_score, status")
+      .eq("status", "published")
 
+    if (minScore > 0) {
+      dbQuery = dbQuery.gte("market_potential_score", minScore)
+    }
+
+    // Search using OR conditions for each term
+    const searchConditions = searchTerms.map(term => 
+      `title.ilike.%${term}%,description.ilike.%${term}%`
+    ).join(",")
+    
+    dbQuery = dbQuery.or(searchConditions)
+
+    const { data: dbIdeas, error } = await dbQuery.limit(100)
+
+    if (error) {
+      console.error("Database search error:", error)
+    } else if (dbIdeas) {
+      for (const idea of dbIdeas) {
         const relevanceScore = calculateRelevance(
           searchTerms,
           idea.title,
@@ -57,62 +76,9 @@ export async function GET(request: NextRequest) {
             title: idea.title,
             description: idea.description,
             source: idea.source,
-            market_potential_score: idea.market_potential_score,
+            market_potential_score: idea.market_potential_score ?? 50,
             relevanceScore,
           })
-        }
-      }
-    }
-
-    // Search database for user-created ideas
-    if (source === "all" || source === "user") {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey)
-      
-      // Build search query for Supabase
-      // Using ilike for case-insensitive search
-      let dbQuery = supabase
-        .from("ideas")
-        .select("id, title, description, body_text, source, market_potential_score, status")
-        .eq("status", "published")
-
-      if (source === "user") {
-        dbQuery = dbQuery.eq("source", "user")
-      }
-
-      if (minScore > 0) {
-        dbQuery = dbQuery.gte("market_potential_score", minScore)
-      }
-
-      // Search using OR conditions for each term
-      const searchConditions = searchTerms.map(term => 
-        `title.ilike.%${term}%,description.ilike.%${term}%`
-      ).join(",")
-      
-      dbQuery = dbQuery.or(searchConditions)
-
-      const { data: dbIdeas, error } = await dbQuery.limit(100)
-
-      if (error) {
-        console.error("Database search error:", error)
-      } else if (dbIdeas) {
-        for (const idea of dbIdeas) {
-          const relevanceScore = calculateRelevance(
-            searchTerms,
-            idea.title,
-            idea.description,
-            idea.body_text
-          )
-
-          if (relevanceScore > 0) {
-            results.push({
-              id: idea.id,
-              title: idea.title,
-              description: idea.description,
-              source: idea.source,
-              market_potential_score: idea.market_potential_score ?? 50,
-              relevanceScore,
-            })
-          }
         }
       }
     }
