@@ -6,6 +6,7 @@ import Script from "next/script";
 import type { Idea } from "@/lib/types";
 import { IdeaCard } from "@/components/ui/idea-card";
 import { AdvancedSearch } from "@/components/ui/advanced-search";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,11 +124,12 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="container py-8">
-      {/* Hidden H1 for SEO - visually hidden but accessible to screen readers and search engines */}
-      <h1 className="sr-only">
-        Discover Startup Ideas from Reddit - Browse Thousands of Business Ideas from Top Entrepreneurial Communities
-      </h1>
+      <PageTransition>
+        <div className="container py-8">
+        {/* Hidden H1 for SEO - visually hidden but accessible to screen readers and search engines */}
+        <h1 className="sr-only">
+          Discover Startup Ideas from Reddit - Browse Thousands of Business Ideas from Top Entrepreneurial Communities
+        </h1>
 
       {/* Top 3 Ideas Carousel */}
       {topIdeas.length > 0 && (
@@ -386,8 +388,9 @@ export default function Home() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-border bg-surface p-6"
-          >
+              className="animate-shimmer rounded-lg border border-border bg-surface p-6"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
               <div className="mb-3 h-6 w-32 rounded-full bg-border"></div>
               <div className="mb-3 h-6 w-full rounded bg-border"></div>
               <div className="mb-4 space-y-2">
@@ -407,11 +410,11 @@ export default function Home() {
 
       {/* Error State */}
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-8 text-center">
+        <div className="animate-scale-in rounded-lg border border-red-500/20 bg-red-500/10 p-8 text-center">
           <p className="text-red-400">Error: {error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+            className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect"
           >
             Retry
           </button>
@@ -420,7 +423,7 @@ export default function Home() {
 
       {/* Empty State */}
       {!loading && !error && ideas.length === 0 && (
-        <div className="rounded-lg border border-border bg-surface p-8 text-center">
+        <div className="animate-scale-in rounded-lg border border-border bg-surface p-8 text-center">
           <p className="text-text-muted">
             No ideas found. Try adjusting your filters or{" "}
             <button
@@ -428,8 +431,8 @@ export default function Home() {
                 const res = await fetch("/api/ideas/fetch", { method: "POST" });
                 if (res.ok) window.location.reload();
               }}
-              className="text-accent hover:opacity-80"
-          >
+              className="text-accent transition-smooth hover:opacity-80"
+            >
               fetch new ideas
             </button>
             .
@@ -440,24 +443,29 @@ export default function Home() {
        {/* Ideas Gallery */}
        {!loading && !error && ideas.length > 0 && (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-           {ideas.map((idea) => (
-             <IdeaCard
+           {ideas.map((idea, index) => (
+             <div
                key={idea.id}
-               idea={idea}
-               userVote={null} // TODO: Pass actual user vote from context/auth
-               isBookmarked={false} // TODO: Pass actual bookmark status
-             />
+               className="animate-scale-in"
+               style={{ animationDelay: `${index * 50}ms` }}
+             >
+               <IdeaCard
+                 idea={idea}
+                 userVote={null} // TODO: Pass actual user vote from context/auth
+                 isBookmarked={false} // TODO: Pass actual bookmark status
+               />
+             </div>
            ))}
          </div>
        )}
 
       {/* Pagination */}
       {!loading && !error && ideas.length > 0 && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-2">
+        <div className="mt-8 flex items-center justify-center gap-2 animate-fade-in">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-colors hover:bg-border disabled:opacity-50"
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-smooth hover:bg-border disabled:opacity-50 press-effect"
           >
             Previous
           </button>
@@ -467,13 +475,14 @@ export default function Home() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-colors hover:bg-border disabled:opacity-50"
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-smooth hover:bg-border disabled:opacity-50 press-effect"
           >
             Next
           </button>
         </div>
       )}
     </div>
+    </PageTransition>
     </>
   );
 }

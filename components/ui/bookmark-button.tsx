@@ -67,15 +67,15 @@ export function BookmarkButton({
   return (
     <button
       onClick={handleToggle}
-      className={`group flex items-center gap-2 rounded-lg ${paddingClasses[size]} transition-colors ${
+      className={`group flex items-center gap-2 rounded-lg ${paddingClasses[size]} transition-all duration-200 active:scale-95 ${
         isBookmarked
-          ? "bg-accent/20 text-accent"
+          ? "bg-accent/20 text-accent animate-success-pulse"
           : "text-text-muted hover:bg-surface hover:text-accent"
       }`}
       aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
     >
       <svg
-        className={sizeClasses[size]}
+        className={`${sizeClasses[size]} transition-transform duration-200 ${isBookmarked ? "scale-110" : "group-hover:scale-110"}`}
         fill={isBookmarked ? "currentColor" : "none"}
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -88,7 +88,7 @@ export function BookmarkButton({
         />
       </svg>
       {showLabel && (
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium transition-all duration-200">
           {isBookmarked ? "Bookmarked" : "Bookmark"}
         </span>
       )}

@@ -13,6 +13,39 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+// Generate a unique username from name/email
+function generateUsername(
+  firstName: string | null,
+  lastName: string | null,
+  email: string,
+  userId: string
+): string {
+  // Try to create username from first name + last name
+  if (firstName && lastName) {
+    const base = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (base.length >= 3) {
+      return `${base}${userId.slice(-4)}`
+    }
+  }
+  
+  // Try first name only
+  if (firstName) {
+    const base = firstName.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (base.length >= 2) {
+      return `${base}${userId.slice(-4)}`
+    }
+  }
+  
+  // Fall back to email prefix
+  const emailPrefix = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (emailPrefix.length >= 2) {
+    return `${emailPrefix}${userId.slice(-4)}`
+  }
+  
+  // Last resort: use part of userId
+  return `user${userId.slice(-8)}`
+}
+
 /**
  * Create an authenticated Supabase client for server-side use
  * Uses Clerk's auth() to get the session token
@@ -65,15 +98,16 @@ export async function ensureUserProfile(): Promise<{ userId: string | null; erro
   // Check if profile exists
   const { data: existingProfile } = await adminClient
     .from('profiles')
-    .select('id')
+    .select('id, username')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (existingProfile) {
+  // If profile exists with username, return
+  if (existingProfile?.username) {
     return { userId: user.id, error: null }
   }
 
-  // Profile doesn't exist, create it
+  // Profile doesn't exist or needs username, create/update it
   const primaryEmail = user.emailAddresses.find(
     email => email.id === user.primaryEmailAddressId
   )?.emailAddress
@@ -82,13 +116,21 @@ export async function ensureUserProfile(): Promise<{ userId: string | null; erro
     return { userId: null, error: new Error('No primary email found') }
   }
 
+  // Generate username if not provided by Clerk
+  const username = user.username ?? generateUsername(
+    user.firstName ?? null,
+    user.lastName ?? null,
+    primaryEmail,
+    user.id
+  )
+
   // Use upsert to handle potential race conditions
   const { error } = await adminClient
     .from('profiles')
     .upsert({
       id: user.id,
       email: primaryEmail,
-      username: user.username ?? null,
+      username,
       first_name: user.firstName ?? null,
       last_name: user.lastName ?? null,
       image_url: user.imageUrl ?? null,
@@ -99,6 +141,6 @@ export async function ensureUserProfile(): Promise<{ userId: string | null; erro
     return { userId: null, error }
   }
 
-  console.log('Profile created for user:', user.id)
+  console.log('Profile created/updated for user:', user.id, 'with username:', username)
   return { userId: user.id, error: null }
 }

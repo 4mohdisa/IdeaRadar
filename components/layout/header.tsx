@@ -19,7 +19,7 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+        <Link href="/" className="flex items-center gap-3 transition-smooth hover:opacity-80">
           <Image
             src="/logo-icon.png"
             alt="IdeaRadar"
@@ -36,26 +36,19 @@ export function Header() {
         <nav className="hidden items-center gap-6 md:flex">
           <Link
             href="/leaderboard"
-            className="text-sm text-text-muted transition-colors hover:text-accent"
+            className="text-sm text-text-muted transition-smooth hover:text-accent"
           >
             Leaderboard
           </Link>
-          <Link
-            href="/about"
-            className="text-sm text-text-muted transition-colors hover:text-accent"
-          >
-            About
-          </Link>
-          
           {/* Auth-aware navigation */}
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="text-sm text-text-muted transition-colors hover:text-accent">
+              <button className="text-sm text-text-muted transition-smooth hover:text-accent">
                 Sign In
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90">
+              <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect">
                 Get Started
               </button>
             </SignUpButton>
@@ -64,13 +57,13 @@ export function Header() {
           <SignedIn>
             <Link
               href="/dashboard"
-              className="text-sm text-text-muted transition-colors hover:text-accent"
+              className="text-sm text-text-muted transition-smooth hover:text-accent"
             >
               Dashboard
             </Link>
             <Link
               href="/create"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect"
             >
               Create Idea
             </Link>
@@ -78,7 +71,7 @@ export function Header() {
               afterSignOutUrl="/"
               appearance={{
                 elements: {
-                  avatarBox: "h-8 w-8"
+                  avatarBox: "h-8 w-8 transition-transform hover:scale-105"
                 }
               }}
             />
@@ -89,17 +82,13 @@ export function Header() {
         <div className="md:hidden">
           <IconButton
             icon={
-              mobileMenuOpen ? (
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="relative h-6 w-6">
+                <svg 
+                  className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${mobileMenuOpen ? 'rotate-90 opacity-0' : 'rotate-0 opacity-100'}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -107,7 +96,20 @@ export function Header() {
                     d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
-              )
+                <svg 
+                  className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${mobileMenuOpen ? 'rotate-0 opacity-100' : '-rotate-90 opacity-0'}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
             }
             label={mobileMenuOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -116,74 +118,73 @@ export function Header() {
       </div>
 
       {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="border-t border-border bg-background md:hidden">
-          <nav className="container flex flex-col gap-4 py-4">
-            <Link
-              href="/leaderboard"
-              className="text-sm text-text-muted transition-colors hover:text-accent"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Leaderboard
-            </Link>
-            <Link
-              href="/about"
-              className="text-sm text-text-muted transition-colors hover:text-accent"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              About
-            </Link>
-            
-            {/* Auth-aware mobile navigation */}
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button 
-                  className="text-sm text-text-muted transition-colors hover:text-accent text-left"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button 
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Get Started
-                </button>
-              </SignUpButton>
-            </SignedOut>
-            
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                className="text-sm text-text-muted transition-colors hover:text-accent"
+      <div 
+        className={`overflow-hidden border-t border-border bg-background transition-all duration-300 ease-out md:hidden ${
+          mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 border-t-0'
+        }`}
+      >
+        <nav className="container flex flex-col gap-4 py-4">
+          <Link
+            href="/leaderboard"
+            className="text-sm text-text-muted transition-smooth hover:text-accent animate-slide-in-left"
+            style={{ animationDelay: "50ms" }}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Leaderboard
+          </Link>
+          {/* Auth-aware mobile navigation */}
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button 
+                className="text-sm text-text-muted transition-smooth hover:text-accent text-left animate-slide-in-left"
+                style={{ animationDelay: "150ms" }}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Dashboard
-              </Link>
-              <Link
-                href="/create"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button 
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
+                style={{ animationDelay: "200ms" }}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Create Idea
-              </Link>
-              <div className="flex items-center gap-2">
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-8 w-8"
-                    }
-                  }}
-                />
-                <span className="text-sm text-text-muted">Account</span>
-              </div>
-            </SignedIn>
-          </nav>
-        </div>
-      )}
+                Get Started
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          
+          <SignedIn>
+            <Link
+              href="/dashboard"
+              className="text-sm text-text-muted transition-smooth hover:text-accent animate-slide-in-left"
+              style={{ animationDelay: "150ms" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/create"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
+              style={{ animationDelay: "200ms" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Create Idea
+            </Link>
+            <div className="flex items-center gap-2 animate-slide-in-left" style={{ animationDelay: "250ms" }}>
+              <UserButton 
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8"
+                  }
+                }}
+              />
+              <span className="text-sm text-text-muted">Account</span>
+            </div>
+          </SignedIn>
+        </nav>
+      </div>
     </header>
   );
 }

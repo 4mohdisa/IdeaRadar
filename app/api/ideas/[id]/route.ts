@@ -14,9 +14,19 @@ export async function GET(
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Fetch idea with user profile joined
     const { data: dbIdea, error } = await supabase
       .from('ideas')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          username,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
       .eq('id', id)
       .maybeSingle();
     
@@ -29,9 +39,26 @@ export async function GET(
       return NextResponse.json({ error: "Idea not found" }, { status: 404 });
     }
 
-    // Transform database idea to match frontend expected format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const idea = dbIdea as any;
+    const profile = idea.profiles;
+    
+    // Build author display name and username
+    let authorName = "User";
+    let authorUsername: string | null = null;
+    
+    if (profile) {
+      authorUsername = profile.username;
+      if (profile.first_name && profile.last_name) {
+        authorName = `${profile.first_name} ${profile.last_name}`;
+      } else if (profile.first_name) {
+        authorName = profile.first_name;
+      } else if (profile.username) {
+        authorName = profile.username;
+      }
+    } else if (idea.reddit_author) {
+      authorName = idea.reddit_author;
+    }
     
     return NextResponse.json({
       id: idea.id,
@@ -42,7 +69,9 @@ export async function GET(
       source: idea.source,
       user_id: idea.user_id,
       subreddit: idea.subreddit,
-      author: idea.reddit_author || 'User',
+      author: authorName,
+      author_username: authorUsername,
+      author_avatar: profile?.image_url || null,
       upvotes: idea.upvotes || 0,
       downvotes: idea.downvotes || 0,
       comments_count: idea.comments_count || 0,

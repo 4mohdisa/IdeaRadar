@@ -10,7 +10,10 @@ import { ScoreBadge } from "@/components/ui/score-badge";
 import { VoteButtons } from "@/components/ui/vote-buttons";
 import { BookmarkButton } from "@/components/ui/bookmark-button";
 import { SourceBadge } from "@/components/ui/source-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { CommentsSection } from "@/components/ui/comments-section";
+import { PageTransition } from "@/components/ui/page-transition";
+import { MdEdit, MdVisibilityOff } from "react-icons/md";
 
 export default function IdeaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -117,11 +120,11 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
   if (loading) {
     return (
       <div className="container px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6 h-4 w-32 animate-pulse rounded bg-border"></div>
+        <div className="mb-6 h-4 w-32 animate-shimmer rounded bg-border"></div>
         <div className="mx-auto max-w-4xl space-y-6 overflow-hidden">
-          <div className="h-8 w-3/4 animate-pulse rounded bg-border"></div>
-          <div className="h-6 w-1/2 animate-pulse rounded bg-border"></div>
-          <div className="h-64 animate-pulse rounded-lg bg-border"></div>
+          <div className="h-8 w-3/4 animate-shimmer rounded bg-border"></div>
+          <div className="h-6 w-1/2 animate-shimmer rounded bg-border" style={{ animationDelay: "100ms" }}></div>
+          <div className="h-64 animate-shimmer rounded-lg bg-border" style={{ animationDelay: "200ms" }}></div>
         </div>
       </div>
     );
@@ -129,26 +132,28 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
 
   if (error || !idea) {
     return (
-      <div className="container px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-accent"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Ideas
-        </Link>
-        <div className="overflow-hidden rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-center sm:p-8">
-          <p className="break-words text-red-400">Error: {error || "Idea not found"}</p>
+      <PageTransition>
+        <div className="container px-4 py-8 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="mt-4 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-text-muted transition-smooth hover:text-accent"
           >
-            Back to Home
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Ideas
           </Link>
+          <div className="animate-scale-in overflow-hidden rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-center sm:p-8">
+            <p className="break-words text-red-400">Error: {error || "Idea not found"}</p>
+            <Link
+              href="/"
+              className="mt-4 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect"
+            >
+              Back to Home
+            </Link>
+          </div>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
@@ -163,42 +168,88 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
         />
       )}
 
-      <div className="container px-4 py-8 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-accent"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Ideas
-        </Link>
+      <PageTransition>
+        <div className="container px-4 py-8 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <Link
+            href="/"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-text-muted transition-smooth hover:text-accent"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Ideas
+          </Link>
 
-        <div className="mx-auto max-w-4xl overflow-hidden">
-           {/* Header Section */}
-           <header className="mb-8 space-y-4">
-             {/* Source Badge */}
-             <div className="flex items-center gap-3">
-               <SourceBadge
-                 source={idea.source}
-                 subreddit={idea.source === "reddit" ? idea.subreddit : undefined}
-               />
-               {idea.source === "reddit" && idea.post_url && (
-                 <Link
-                   href={idea.post_url}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="flex items-center gap-1 text-sm text-text-muted transition-colors hover:text-accent"
-                 >
-                   <span>View on Reddit</span>
-                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                     <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                     <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                   </svg>
-                 </Link>
-               )}
-             </div>
+          <div className="mx-auto max-w-4xl overflow-hidden">
+            {/* Draft/Archived Banner */}
+            {(idea.status === "draft" || idea.status === "archived") && (
+              <div className={`mb-6 animate-slide-in-top rounded-lg border p-4 ${
+                idea.status === "draft" 
+                  ? "border-yellow-500/30 bg-yellow-500/10" 
+                  : "border-gray-500/30 bg-gray-500/10"
+              }`}>
+                <div className="flex items-center gap-3">
+                  {idea.status === "draft" ? (
+                    <MdVisibilityOff className="h-5 w-5 shrink-0 text-yellow-400" />
+                  ) : (
+                    <MdEdit className="h-5 w-5 shrink-0 text-gray-400" />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={idea.status} size="md" />
+                      <span className={`text-sm font-medium ${
+                        idea.status === "draft" ? "text-yellow-400" : "text-gray-400"
+                      }`}>
+                        {idea.status === "draft" 
+                          ? "This idea is only visible to you" 
+                          : "This idea has been archived"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {idea.status === "draft" 
+                        ? "Publish this idea to make it visible to the community and receive feedback."
+                        : "Archived ideas are hidden from the public feed."}
+                    </p>
+                  </div>
+                  {idea.status === "draft" && (
+                    <Link
+                      href={`/edit/${idea.id}`}
+                      className="shrink-0 rounded-lg bg-yellow-500/20 px-4 py-2 text-sm font-medium text-yellow-400 transition-smooth hover:bg-yellow-500/30 press-effect"
+                    >
+                      Edit & Publish
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Header Section */}
+            <header className="mb-8 space-y-4 animate-slide-in-bottom">
+              {/* Source Badge */}
+              <div className="flex flex-wrap items-center gap-3">
+                <SourceBadge
+                  source={idea.source}
+                  subreddit={idea.source === "reddit" ? idea.subreddit : undefined}
+                />
+                {idea.status && idea.status !== "published" && (
+                  <StatusBadge status={idea.status} size="md" />
+                )}
+                {idea.source === "reddit" && idea.post_url && (
+                  <Link
+                    href={idea.post_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-text-muted transition-smooth hover:text-accent"
+                  >
+                    <span>View on Reddit</span>
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                  </Link>
+                )}
+              </div>
 
             {/* Title - H1 for SEO */}
             <h1 className="break-words text-2xl font-bold leading-tight text-text-main sm:text-3xl md:text-4xl">
@@ -208,18 +259,40 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
              {/* Meta Information */}
              <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted">
                <div className="flex items-center gap-2">
-                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                   <path
-                     fillRule="evenodd"
-                     d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                     clipRule="evenodd"
+                 {idea.author_avatar ? (
+                   <img 
+                     src={idea.author_avatar} 
+                     alt={idea.author || "User"} 
+                     className="h-5 w-5 rounded-full object-cover"
                    />
-                 </svg>
-                 <span>
-                   {idea.source === "reddit"
-                     ? `u/${idea.reddit_author || idea.author}`
-                     : idea.author || "Anonymous"}
-                 </span>
+                 ) : (
+                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                     <path
+                       fillRule="evenodd"
+                       d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                       clipRule="evenodd"
+                     />
+                   </svg>
+                 )}
+                 {idea.author_username ? (
+                   <Link 
+                     href={`/profile/${idea.author_username}`}
+                     className="text-text-main transition-smooth hover:text-accent hover:underline"
+                   >
+                     {idea.author || idea.author_username}
+                   </Link>
+                 ) : idea.source === "reddit" && idea.reddit_author ? (
+                   <a
+                     href={`https://reddit.com/u/${idea.reddit_author}`}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="text-text-main transition-smooth hover:text-accent hover:underline"
+                   >
+                     u/{idea.reddit_author}
+                   </a>
+                 ) : (
+                   <span>{idea.author || "Anonymous"}</span>
+                 )}
                </div>
                <span>•</span>
                <div>{formatDate(idea.created_at)}</div>
@@ -430,14 +503,15 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
           )}
 
           {/* Comments Section */}
-          <section id="comments" className="mt-12">
+          <section id="comments" className="mt-12 animate-slide-in-bottom" style={{ animationDelay: "400ms" }}>
             <CommentsSection
               ideaId={idea.id}
               ideaAuthorId={idea.user_id}
             />
           </section>
+          </div>
         </div>
-      </div>
+      </PageTransition>
     </>
   );
 }

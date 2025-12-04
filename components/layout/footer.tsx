@@ -9,6 +9,10 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           {/* Left side - Legal links and copyright */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-text-muted sm:justify-start">
+            <Link href="/about" className="transition-colors hover:text-accent">
+              About
+            </Link>
+            <span>·</span>
             <Link href="/privacy" className="transition-colors hover:text-accent">
               Privacy Policy
             </Link>

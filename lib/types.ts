@@ -65,6 +65,8 @@ export interface Idea {
   // User-submitted idea fields
   user_id?: string;
   author?: string; // Display name for community ideas
+  author_username?: string | null; // Username for profile link
+  author_avatar?: string | null; // Avatar URL
   status?: "draft" | "published" | "archived";
   
   // Platform engagement metrics

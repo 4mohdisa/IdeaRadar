@@ -23,9 +23,19 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Fetch ideas with user profile joined
     const { data: dbIdeas, error } = await supabase
       .from('ideas')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          username,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
 
@@ -41,26 +51,50 @@ export async function GET(request: NextRequest) {
     
     if (dbIdeas && dbIdeas.length > 0) {
       // Transform database ideas to match the Idea type
-      allIdeas = dbIdeas.map(idea => ({
-        id: idea.id,
-        title: idea.title,
-        original_title: idea.original_title,
-        description: idea.description,
-        body_text: idea.body_text || '',
-        source: idea.source as 'reddit' | 'user',
-        user_id: idea.user_id,
-        subreddit: idea.subreddit || undefined,
-        author: idea.reddit_author || 'User',
-        reddit_author: idea.reddit_author,
-        upvotes: idea.upvotes || 0,
-        downvotes: idea.downvotes || 0,
-        comments_count: idea.comments_count || 0,
-        created_at: idea.created_at,
-        post_url: idea.post_url,
-        thumbnail: idea.thumbnail,
-        market_potential_score: idea.market_potential_score ?? 50,
-        status: idea.status,
-      }));
+      allIdeas = dbIdeas.map(idea => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const profile = (idea as any).profiles;
+        
+        // Build author display name and username
+        let authorName = "User";
+        let authorUsername: string | null = null;
+        
+        if (profile) {
+          authorUsername = profile.username;
+          if (profile.first_name && profile.last_name) {
+            authorName = `${profile.first_name} ${profile.last_name}`;
+          } else if (profile.first_name) {
+            authorName = profile.first_name;
+          } else if (profile.username) {
+            authorName = profile.username;
+          }
+        } else if (idea.reddit_author) {
+          authorName = idea.reddit_author;
+        }
+        
+        return {
+          id: idea.id,
+          title: idea.title,
+          original_title: idea.original_title,
+          description: idea.description,
+          body_text: idea.body_text || '',
+          source: idea.source as 'reddit' | 'user',
+          user_id: idea.user_id,
+          subreddit: idea.subreddit || undefined,
+          author: authorName,
+          author_username: authorUsername,
+          author_avatar: profile?.image_url || null,
+          reddit_author: idea.reddit_author,
+          upvotes: idea.upvotes || 0,
+          downvotes: idea.downvotes || 0,
+          comments_count: idea.comments_count || 0,
+          created_at: idea.created_at,
+          post_url: idea.post_url,
+          thumbnail: idea.thumbnail,
+          market_potential_score: idea.market_potential_score ?? 50,
+          status: idea.status,
+        };
+      });
     }
   } catch (error) {
     console.error("Error fetching from database:", error);

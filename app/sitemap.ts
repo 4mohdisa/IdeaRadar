@@ -29,7 +29,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.3,
     },
-    // Individual idea pages will be added dynamically when fetching from database
+    {
+      url: `${baseUrl}/leaderboard`,
+      lastModified: currentDate,
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/create`,
+      lastModified: currentDate,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    // Individual idea and profile pages will be added dynamically when fetching from database
   ];
 }
 

@@ -110,15 +110,15 @@ export function VoteButtons({
       {/* Upvote Button */}
       <button
         onClick={() => handleVote("up")}
-        className={`group flex items-center gap-1 rounded-lg p-2 transition-colors ${
+        className={`group flex items-center gap-1 rounded-lg p-2 transition-all duration-200 active:scale-95 ${
           userVote === "up"
-            ? "bg-green-500/20 text-green-400"
+            ? "bg-green-500/20 text-green-400 animate-success-pulse"
             : "text-text-muted hover:bg-surface hover:text-green-400"
         }`}
         aria-label="Upvote"
       >
         <svg
-          className="h-5 w-5"
+          className={`h-5 w-5 transition-transform duration-200 ${userVote === "up" ? "scale-110" : "group-hover:scale-110"}`}
           fill={userVote === "up" ? "currentColor" : "none"}
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -131,14 +131,14 @@ export function VoteButtons({
           />
         </svg>
         {showCount && layout === "horizontal" && (
-          <span className="text-sm font-medium">{upvotes}</span>
+          <span className="text-sm font-medium transition-all duration-200">{upvotes}</span>
         )}
       </button>
 
       {/* Score Display (for vertical layout) */}
       {layout === "vertical" && showCount && (
         <span
-          className={`text-sm font-bold ${
+          className={`text-sm font-bold transition-all duration-300 ${
             netScore > 0
               ? "text-green-400"
               : netScore < 0
@@ -154,7 +154,7 @@ export function VoteButtons({
       {/* Downvote Button */}
       <button
         onClick={() => handleVote("down")}
-        className={`group flex items-center gap-1 rounded-lg p-2 transition-colors ${
+        className={`group flex items-center gap-1 rounded-lg p-2 transition-all duration-200 active:scale-95 ${
           userVote === "down"
             ? "bg-red-500/20 text-red-400"
             : "text-text-muted hover:bg-surface hover:text-red-400"
@@ -162,7 +162,7 @@ export function VoteButtons({
         aria-label="Downvote"
       >
         <svg
-          className="h-5 w-5"
+          className={`h-5 w-5 transition-transform duration-200 ${userVote === "down" ? "scale-110" : "group-hover:scale-110"}`}
           fill={userVote === "down" ? "currentColor" : "none"}
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -175,14 +175,14 @@ export function VoteButtons({
           />
         </svg>
         {showCount && layout === "horizontal" && (
-          <span className="text-sm font-medium">{downvotes}</span>
+          <span className="text-sm font-medium transition-all duration-200">{downvotes}</span>
         )}
       </button>
 
       {/* Net Score (for horizontal layout) */}
       {layout === "horizontal" && showCount && (
         <span
-          className={`text-sm font-bold ${
+          className={`text-sm font-bold transition-all duration-300 ${
             netScore > 0
               ? "text-green-400"
               : netScore < 0
