@@ -34,7 +34,7 @@ export default function Home() {
     minScore,
   });
 
-  const { data: topIdeasData } = useGetTopIdeasQuery();
+  const { data: topIdeasData, isLoading: topIdeasLoading } = useGetTopIdeasQuery();
 
   const ideas = ideasData?.ideas || [];
   const totalPages = ideasData?.totalPages || 1;
@@ -131,8 +131,79 @@ export default function Home() {
           Discover Startup Ideas from Reddit - Browse Thousands of Business Ideas from Top Entrepreneurial Communities
         </h1>
 
+      {/* Top Ideas Loading Skeleton */}
+      {topIdeasLoading && (
+        <section className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="h-7 w-56 animate-pulse rounded bg-border sm:h-8"></div>
+            {/* Skeleton dots - Mobile only */}
+            <div className="flex gap-2 md:hidden">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-2 w-2 animate-pulse rounded-full bg-border"></div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile: Single card skeleton */}
+          <div className="md:hidden">
+            <div className="relative overflow-hidden rounded-lg border border-border bg-surface p-6">
+              {/* Rank badge skeleton */}
+              <div className="absolute right-4 top-4 h-10 w-10 animate-pulse rounded-full bg-border"></div>
+              {/* Content skeleton */}
+              <div className="mb-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="h-6 w-14 animate-pulse rounded-full bg-border"></div>
+                  <div className="h-6 w-20 animate-pulse rounded-full bg-border"></div>
+                </div>
+                <div className="mb-2 h-6 w-4/5 animate-pulse rounded bg-border"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full animate-pulse rounded bg-border"></div>
+                  <div className="h-4 w-3/4 animate-pulse rounded bg-border"></div>
+                </div>
+              </div>
+              {/* Stats skeleton */}
+              <div className="flex items-center gap-3">
+                <div className="h-4 w-10 animate-pulse rounded bg-border"></div>
+                <div className="h-4 w-10 animate-pulse rounded bg-border"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: Grid skeleton */}
+          <div className="hidden gap-4 md:grid md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-lg border border-border bg-surface p-6"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                {/* Rank badge skeleton */}
+                <div className="absolute right-4 top-4 h-10 w-10 animate-pulse rounded-full bg-border"></div>
+                {/* Content skeleton */}
+                <div className="mb-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="h-6 w-14 animate-pulse rounded-full bg-border"></div>
+                    <div className="h-6 w-20 animate-pulse rounded-full bg-border"></div>
+                  </div>
+                  <div className="mb-2 h-6 w-4/5 animate-pulse rounded bg-border"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-full animate-pulse rounded bg-border"></div>
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-border"></div>
+                  </div>
+                </div>
+                {/* Stats skeleton */}
+                <div className="flex items-center gap-3">
+                  <div className="h-4 w-10 animate-pulse rounded bg-border"></div>
+                  <div className="h-4 w-10 animate-pulse rounded bg-border"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Top 3 Ideas Carousel */}
-      {topIdeas.length > 0 && (
+      {!topIdeasLoading && topIdeas.length > 0 && (
         <section className="mb-8">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-text-main sm:text-2xl">
