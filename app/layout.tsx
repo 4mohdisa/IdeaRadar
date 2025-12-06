@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Orbitron } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -122,6 +123,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${inter.variable} ${orbitron.variable}`}>
+        <GoogleTagManager gtmId="GTM-NZVJSLXN" />
         <body className="flex min-h-screen flex-col" suppressHydrationWarning>
           <StoreProvider>
             <Header />
@@ -129,6 +131,7 @@ export default function RootLayout({
             <Footer />
           </StoreProvider>
         </body>
+        <GoogleAnalytics gaId="G-0KH23SZ43Y" />
       </html>
     </ClerkProvider>
   );

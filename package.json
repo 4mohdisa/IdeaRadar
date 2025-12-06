@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.35.5",
     "@google/generative-ai": "^0.24.1",
+    "@next/third-parties": "^16.0.7",
     "@radix-ui/react-slot": "^1.2.4",
     "@reduxjs/toolkit": "^2.11.0",
     "@supabase/supabase-js": "^2.86.0",
