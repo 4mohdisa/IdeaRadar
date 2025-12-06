@@ -22,6 +22,20 @@ if (!geminiApiKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Retry wrapper for API calls
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (i === retries - 1) throw error
+      console.log(`    ⏳ Retry ${i + 1}/${retries} after error...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  throw new Error("Max retries exceeded")
+}
+
 // Import the scoring function dynamically to ensure env vars are loaded
 async function analyzeIdea(
   title: string,
@@ -33,82 +47,76 @@ async function analyzeIdea(
   
   const genAI = new GoogleGenerativeAI(geminiApiKey)
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash-lite", // More reliable for structured output
     generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 2000,
-      responseMimeType: "application/json",
+      temperature: 0.1,
+      maxOutputTokens: 800,
     },
   })
 
-  const fullContent = bodyText ? `${description}\n\n${bodyText}` : description
+  // Truncate content to avoid token limits
+  const maxContentLength = 1000
+  let fullContent = description.substring(0, maxContentLength)
   
-  let contextInfo = ""
-  if (context?.source === "reddit") {
-    contextInfo = "\n\nContext: This idea was sourced from Reddit. Consider community validation signals."
-  }
+  const prompt = `Score this startup idea from 0-100 and write a brief summary.
 
-  const prompt = `You are an expert startup analyst. Analyze this startup idea comprehensively.
-
-SCORING CRITERIA (each 0-10 points, total 0-100):
-- market_demand: Current market demand and problem urgency
-- market_timing: Is now the right time? Trends alignment?
-- revenue_clarity: Clear path to monetization
-- scalability: Growth potential, network effects
-- unique_value: Differentiation and innovation
-- competitive_moat: Barriers to entry, defensibility
-- technical_feasibility: Can it be built with current tech?
-- execution_complexity: Resource requirements (10 = easy to execute)
-- market_risk: Market adoption confidence (10 = very confident)
-- regulatory_risk: Legal/compliance safety (10 = no concerns)
-
-STARTUP IDEA:
 Title: ${title}
-Description: ${fullContent}${contextInfo}
+Description: ${fullContent}
 
-Return JSON:
-{
-  "score_breakdown": {
-    "market_demand": <0-10>,
-    "market_timing": <0-10>,
-    "revenue_clarity": <0-10>,
-    "scalability": <0-10>,
-    "unique_value": <0-10>,
-    "competitive_moat": <0-10>,
-    "technical_feasibility": <0-10>,
-    "execution_complexity": <0-10>,
-    "market_risk": <0-10>,
-    "regulatory_risk": <0-10>
-  },
-  "total_score": <0-100>,
-  "ai_summary": "<2-3 paragraph professional summary>"
-}`
+Respond with ONLY this JSON format (no other text):
+{"total_score": 75, "ai_summary": "Brief 2 sentence summary of the idea and its potential."}`
 
-  const result = await model.generateContent(prompt)
-  const responseText = result.response.text()
+  return withRetry(async () => {
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
 
-  const cleanedResponse = responseText
-    .replace(/```json\n?/g, '')
-    .replace(/```\n?/g, '')
-    .trim()
+    const cleanedResponse = responseText
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
 
-  const analysis = JSON.parse(cleanedResponse)
+    // Try to fix common JSON issues
+    let jsonToParse = cleanedResponse
+    
+    // If JSON is truncated, try to close it
+    if (!jsonToParse.endsWith('}')) {
+      // Find last complete property and close
+      const lastQuote = jsonToParse.lastIndexOf('"')
+      if (lastQuote > 0) {
+        jsonToParse = jsonToParse.substring(0, lastQuote + 1) + '}'
+        // Close score_breakdown if needed
+        if (jsonToParse.includes('"score_breakdown"') && !jsonToParse.includes('},"total_score"')) {
+          jsonToParse = jsonToParse.replace(/}$/, '},"total_score":50,"ai_summary":"Analysis in progress."}')
+        }
+      }
+    }
 
-  return {
-    market_potential_score: Math.min(100, Math.max(0, analysis.total_score ?? 50)),
-    ai_summary: analysis.ai_summary || description,
-    score_breakdown: analysis.score_breakdown,
-  }
+    const analysis = JSON.parse(jsonToParse)
+
+    return {
+      market_potential_score: Math.min(100, Math.max(0, analysis.total_score ?? 50)),
+      ai_summary: analysis.ai_summary || description,
+      score_breakdown: analysis.score_breakdown,
+    }
+  })
 }
 
-async function reEvaluateAllIdeas() {
-  console.log("🚀 Starting re-evaluation of all ideas...\n")
+async function reEvaluateAllIdeas(onlyScore50 = false) {
+  console.log("🚀 Starting re-evaluation of ideas...\n")
 
-  // Fetch all ideas
-  const { data: ideas, error } = await supabase
+  // Fetch ideas
+  let query = supabase
     .from("ideas")
     .select("id, title, description, body_text, source, market_potential_score")
     .order("created_at", { ascending: false })
+  
+  // Optionally filter to only ideas with score 50 (default/failed)
+  if (onlyScore50) {
+    query = query.eq("market_potential_score", 50)
+    console.log("📌 Filtering to only ideas with score = 50\n")
+  }
+
+  const { data: ideas, error } = await query
 
   if (error) {
     console.error("Failed to fetch ideas:", error)
@@ -176,5 +184,6 @@ async function reEvaluateAllIdeas() {
   console.log("=".repeat(50))
 }
 
-// Run the script
-reEvaluateAllIdeas().catch(console.error)
+// Run the script - pass true to only re-evaluate ideas with score 50
+const onlyFailedIdeas = process.argv.includes("--failed-only")
+reEvaluateAllIdeas(onlyFailedIdeas).catch(console.error)
