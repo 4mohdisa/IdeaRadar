@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Script from "next/script";
 import { IdeaCard } from "@/components/ui/idea-card";
@@ -15,6 +15,9 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   // RTK Query hooks - data is cached automatically
   const { 
@@ -44,15 +47,47 @@ export default function Home() {
     { value: "score", label: "Highest Potential" },
   ];
 
-  // Auto-scroll carousel on mobile
+  // Auto-scroll carousel on mobile (pause when user is interacting)
   useEffect(() => {
-    if (topIdeas.length === 0) return;
+    if (topIdeas.length === 0 || isUserInteracting) return;
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % topIdeas.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
+  }, [topIdeas.length, isUserInteracting]);
+
+  // Resume auto-scroll after user stops interacting
+  useEffect(() => {
+    if (!isUserInteracting) return;
+    const timeout = setTimeout(() => setIsUserInteracting(false), 5000);
+    return () => clearTimeout(timeout);
+  }, [isUserInteracting, currentSlide]);
+
+  // Touch handlers for swipe gestures
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsUserInteracting(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50; // Minimum swipe distance
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // Swipe left - next slide
+        setCurrentSlide((prev) => (prev + 1) % topIdeas.length);
+      } else {
+        // Swipe right - previous slide
+        setCurrentSlide((prev) => (prev - 1 + topIdeas.length) % topIdeas.length);
+      }
+    }
   }, [topIdeas.length]);
 
   // JSON-LD structured data for SEO
@@ -118,9 +153,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Mobile: Auto-scroll Carousel, Desktop: Grid */}
+          {/* Mobile: Swipeable Carousel, Desktop: Grid */}
           <div className="relative md:hidden">
-            <div className="overflow-hidden rounded-lg">
+            <div 
+              className="overflow-hidden rounded-lg touch-pan-y"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               <div
                 className="flex transition-transform duration-500 ease-out"
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
