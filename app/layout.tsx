@@ -61,9 +61,9 @@ export const metadata: Metadata = {
     siteName: "IdeaRadar",
     images: [
       {
-        url: "/opengraph.png",
-        width: 1200,
-        height: 630,
+        url: "https://idearadar.com/opengraph.png",
+        width: 1024,
+        height: 1024,
         alt: "IdeaRadar - AI-Powered Startup Idea Discovery & Validation",
       },
     ],
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     title: "IdeaRadar - AI-Powered Startup Idea Discovery",
     description:
       "Discover, validate, and score startup ideas using AI. Find your next big opportunity.",
-    images: ["/opengraph.png"],
+    images: ["https://idearadar.com/opengraph.png"],
   },
   robots: {
     index: true,
