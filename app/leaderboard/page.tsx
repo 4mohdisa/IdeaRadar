@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import type { LeaderboardIdea } from "@/lib/types";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { ScoreBadge } from "@/components/ui/score-badge";
+import { useGetLeaderboardQuery } from "@/lib/store";
 
 type LeaderboardType = "overall" | "reddit" | "community";
 type TimePeriod = "today" | "week" | "month" | "all";
@@ -12,25 +12,9 @@ type TimePeriod = "today" | "week" | "month" | "all";
 export default function LeaderboardPage() {
   const [type, setType] = useState<LeaderboardType>("overall");
   const [period, setPeriod] = useState<TimePeriod>("week");
-  const [ideas, setIdeas] = useState<LeaderboardIdea[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // TODO: Fetch leaderboard data
-    // const fetchLeaderboard = async () => {
-    //   const response = await fetch(`/api/leaderboard?type=${type}&period=${period}`);
-    //   const data = await response.json();
-    //   setIdeas(data.ideas);
-    //   setLoading(false);
-    // };
-    // fetchLeaderboard();
-
-    // Mock loading
-    setTimeout(() => {
-      setIdeas([]);
-      setLoading(false);
-    }, 500);
-  }, [type, period]);
+  const { data, isLoading: loading } = useGetLeaderboardQuery({ type, period });
+  const ideas = data?.ideas || [];
 
   const typeOptions = [
     { value: "overall" as LeaderboardType, label: "🏆 Overall Top" },

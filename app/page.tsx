@@ -3,23 +3,39 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Script from "next/script";
-import type { Idea } from "@/lib/types";
 import { IdeaCard } from "@/components/ui/idea-card";
 import { AdvancedSearch } from "@/components/ui/advanced-search";
 import { PageTransition } from "@/components/ui/page-transition";
+import { useGetIdeasQuery, useGetTopIdeasQuery } from "@/lib/store";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [minScore, setMinScore] = useState(0);
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [topIdeas, setTopIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // RTK Query hooks - data is cached automatically
+  const { 
+    data: ideasData, 
+    isLoading: loading, 
+    isError, 
+    error,
+    refetch 
+  } = useGetIdeasQuery({
+    page,
+    limit: 12,
+    sort: sortBy,
+    search: searchQuery,
+    minScore,
+  });
+
+  const { data: topIdeasData } = useGetTopIdeasQuery();
+
+  const ideas = ideasData?.ideas || [];
+  const totalPages = ideasData?.totalPages || 1;
+  const topIdeas = topIdeasData?.ideas || [];
 
   const sortOptions = [
     { value: "popular", label: "Most Popular" },
@@ -27,22 +43,6 @@ export default function Home() {
     { value: "comments", label: "Most Discussed" },
     { value: "score", label: "Highest Potential" },
   ];
-
-  // Fetch top 3 ideas on mount
-  useEffect(() => {
-    const fetchTopIdeas = async () => {
-      try {
-        const response = await fetch("/api/ideas?limit=3&sort=score");
-        if (response.ok) {
-          const data = await response.json();
-          setTopIdeas(data.ideas || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch top ideas:", err);
-      }
-    };
-    fetchTopIdeas();
-  }, []);
 
   // Auto-scroll carousel on mobile
   useEffect(() => {
@@ -54,41 +54,6 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [topIdeas.length]);
-
-  // Fetch ideas from API
-  useEffect(() => {
-    const fetchIdeas = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: "12",
-          sort: sortBy,
-        });
-
-        if (searchQuery) params.append("search", searchQuery);
-        if (minScore > 0) params.append("minScore", minScore.toString());
-
-        const response = await fetch(`/api/ideas?${params.toString()}`);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch ideas");
-        }
-
-        const data = await response.json();
-        setIdeas(data.ideas || []);
-        setTotalPages(data.totalPages || 1);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchIdeas();
-  }, [page, sortBy, searchQuery, minScore]);
 
   // JSON-LD structured data for SEO
   const jsonLd = {
@@ -409,11 +374,11 @@ export default function Home() {
       )}
 
       {/* Error State */}
-      {error && (
+      {isError && (
         <div className="animate-scale-in rounded-lg border border-red-500/20 bg-red-500/10 p-8 text-center">
-          <p className="text-red-400">Error: {error}</p>
+          <p className="text-red-400">Error: Failed to load ideas</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
             className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect"
           >
             Retry
@@ -422,7 +387,7 @@ export default function Home() {
       )}
 
       {/* Empty State */}
-      {!loading && !error && ideas.length === 0 && (
+      {!loading && !isError && ideas.length === 0 && (
         <div className="animate-scale-in rounded-lg border border-border bg-surface p-8 text-center">
           <p className="text-text-muted">
             No ideas found. Try adjusting your filters or{" "}
@@ -441,7 +406,7 @@ export default function Home() {
       )}
 
        {/* Ideas Gallery */}
-       {!loading && !error && ideas.length > 0 && (
+       {!loading && !isError && ideas.length > 0 && (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
            {ideas.map((idea, index) => (
              <div
@@ -451,8 +416,8 @@ export default function Home() {
              >
                <IdeaCard
                  idea={idea}
-                 userVote={null} // TODO: Pass actual user vote from context/auth
-                 isBookmarked={false} // TODO: Pass actual bookmark status
+                 userVote={null}
+                 isBookmarked={false}
                />
              </div>
            ))}
@@ -460,7 +425,7 @@ export default function Home() {
        )}
 
       {/* Pagination */}
-      {!loading && !error && ideas.length > 0 && totalPages > 1 && (
+      {!loading && !isError && ideas.length > 0 && totalPages > 1 && (
         <div className="mt-8 flex items-center justify-center gap-2 animate-fade-in">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}

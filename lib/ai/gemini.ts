@@ -2,9 +2,11 @@
  * Gemini AI Service
  * 
  * Provides AI-powered scoring and summary generation for startup ideas
+ * Uses Gemini 2.5 Flash for improved accuracy and structured output
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { analyzeIdeaEnhanced, type ScoreBreakdown } from "./scoring"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
@@ -15,103 +17,42 @@ if (!GEMINI_API_KEY) {
 interface IdeaAnalysis {
   market_potential_score: number
   ai_summary: string
+  score_breakdown?: ScoreBreakdown
+  strengths?: string[]
+  challenges?: string[]
+  target_market?: string
+  suggested_next_steps?: string[]
 }
 
-interface ScoreBreakdown {
-  market_relevance: number
-  scalability: number
-  monetization: number
-  competition: number
-}
+// Re-export for backward compatibility
+export type { ScoreBreakdown }
 
 /**
- * Analyze a startup idea using Gemini AI
- * Returns a market potential score (0-100) and an AI-generated summary
+ * Analyze a startup idea using Gemini 2.5 Flash
+ * Returns a market potential score (0-100), AI-generated summary, and detailed breakdown
  */
 export async function analyzeIdea(
   title: string,
   description: string,
-  bodyText?: string | null
-): Promise<IdeaAnalysis> {
-  // Return default values if API key is not configured
-  if (!GEMINI_API_KEY) {
-    return {
-      market_potential_score: 50,
-      ai_summary: description,
-    }
+  bodyText?: string | null,
+  context?: {
+    source?: "reddit" | "community"
+    subreddit?: string
+    upvotes?: number
+    comments?: number
   }
-
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1500,
-      },
-    })
-
-    const fullContent = bodyText ? `${description}\n\n${bodyText}` : description
-
-    const prompt = `You are an expert startup analyst and venture capitalist. Analyze the following startup idea and provide:
-
-1. A market potential score from 0-100 based on these criteria:
-   - Market Relevance (0-25): Current demand and market timing
-   - Scalability Potential (0-25): Growth capability and expansion potential
-   - Monetization Simplicity (0-25): Clear revenue model and path to profitability
-   - Competition Level (0-25): Market saturation and competitive advantage (higher score = less competition/better positioning)
-
-2. A concise, professional summary (2-3 paragraphs) that:
-   - Explains the core value proposition
-   - Identifies the target market and key use cases
-   - Highlights potential strengths and challenges
-
-STARTUP IDEA:
-Title: ${title}
-
-Description: ${fullContent}
-
-Respond in the following JSON format ONLY (no markdown, no code blocks, just raw JSON):
-{
-  "score_breakdown": {
-    "market_relevance": <number 0-25>,
-    "scalability": <number 0-25>,
-    "monetization": <number 0-25>,
-    "competition": <number 0-25>
-  },
-  "total_score": <number 0-100>,
-  "summary": "<string with 2-3 paragraph summary>"
-}`
-
-    const result = await model.generateContent(prompt)
-    const responseText = result.response.text()
-
-    // Parse the JSON response
-    const cleanedResponse = responseText
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
-
-    const analysis = JSON.parse(cleanedResponse) as {
-      score_breakdown: ScoreBreakdown
-      total_score: number
-      summary: string
-    }
-
-    // Validate and clamp the score
-    const score = Math.min(100, Math.max(0, Math.round(analysis.total_score)))
-
-    return {
-      market_potential_score: score,
-      ai_summary: analysis.summary || description,
-    }
-  } catch (error) {
-    console.error("Error analyzing idea with Gemini:", error)
-    // Return default values on error
-    return {
-      market_potential_score: 50,
-      ai_summary: description,
-    }
+): Promise<IdeaAnalysis> {
+  // Use the enhanced scoring service
+  const analysis = await analyzeIdeaEnhanced(title, description, bodyText, context)
+  
+  return {
+    market_potential_score: analysis.total_score,
+    ai_summary: analysis.ai_summary,
+    score_breakdown: analysis.score_breakdown,
+    strengths: analysis.strengths,
+    challenges: analysis.challenges,
+    target_market: analysis.target_market,
+    suggested_next_steps: analysis.suggested_next_steps,
   }
 }
 
@@ -130,10 +71,10 @@ export async function generateSummary(
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 800,
+        temperature: 0.5,
+        maxOutputTokens: 600,
       },
     })
 
@@ -174,36 +115,39 @@ export async function calculateScore(
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 200,
+        temperature: 0.2,
+        maxOutputTokens: 100,
+        responseMimeType: "application/json",
       },
     })
 
     const fullContent = bodyText ? `${description}\n\n${bodyText}` : description
 
-    const prompt = `You are an expert startup analyst. Score this startup idea from 0-100 based on:
-- Market Relevance (0-25): Current demand and market timing
-- Scalability Potential (0-25): Growth capability
-- Monetization Simplicity (0-25): Clear revenue model
-- Competition Level (0-25): Market positioning (higher = better)
+    const prompt = `Score this startup idea from 0-100 based on market potential, feasibility, scalability, and competitive positioning.
 
-STARTUP IDEA:
 Title: ${title}
 Description: ${fullContent}
 
-Respond with ONLY a single number (the total score from 0-100), nothing else:`
+Return JSON: {"score": <number 0-100>}`
 
     const result = await model.generateContent(prompt)
-    const scoreText = result.response.text().trim()
-    const score = parseInt(scoreText, 10)
+    const responseText = result.response.text().trim()
+    
+    const cleanedResponse = responseText
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+    
+    const parsed = JSON.parse(cleanedResponse)
+    const score = parsed.score
 
-    if (isNaN(score)) {
+    if (typeof score !== 'number' || isNaN(score)) {
       return 50
     }
 
-    return Math.min(100, Math.max(0, score))
+    return Math.min(100, Math.max(0, Math.round(score)))
   } catch (error) {
     console.error("Error calculating score with Gemini:", error)
     return 50

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IoChevronBack, IoCalendarOutline } from "react-icons/io5";
@@ -8,71 +8,25 @@ import { FaLightbulb, FaArrowUp, FaComments, FaStar, FaChartLine } from "react-i
 import { HiUserCircle } from "react-icons/hi";
 import { PageTransition } from "@/components/ui/page-transition";
 import { IdeaCard } from "@/components/ui/idea-card";
-import type { Idea } from "@/lib/types";
-
-interface UserProfile {
-  id: string;
-  username: string;
-  displayName: string;
-  email: string;
-  avatarUrl: string | null;
-  joinedAt: string;
-}
-
-interface UserAnalytics {
-  totalIdeas: number;
-  totalUpvotes: number;
-  totalDownvotes: number;
-  totalComments: number;
-  avgScore: number;
-  topScore: number;
-  medianScore: number;
-  publishedIdeas: number;
-}
+import { useGetProfileByUsernameQuery } from "@/lib/store";
 
 type SortOption = "recent" | "popular" | "score";
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("recent");
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
 
-  // Fetch profile data from API
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`/api/profile/${username}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("User not found");
-          } else {
-            setError("Failed to load profile");
-          }
-          return;
-        }
-        
-        const data = await response.json();
-        setProfile(data.profile);
-        setAnalytics(data.analytics);
-        setIdeas(data.ideas || []);
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-        setError("Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProfile();
-  }, [username]);
+  // RTK Query hook - data is cached automatically
+  const { 
+    data: profileData, 
+    isLoading: loading, 
+    isError 
+  } = useGetProfileByUsernameQuery(username);
+
+  const profile = profileData?.profile ?? null;
+  const analytics = profileData?.analytics ?? null;
+  const ideas = profileData?.ideas ?? [];
+  const error = isError ? "Failed to load profile" : null;
 
   // Sort ideas
   const sortedIdeas = [...ideas].sort((a, b) => {

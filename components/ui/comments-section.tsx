@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
+import { useGetCommentsQuery, usePostCommentMutation } from "@/lib/store";
 
 interface Comment {
   id: number;
@@ -189,63 +190,32 @@ function CommentItem({
 export function CommentsSection({ ideaId, ideaAuthorId }: CommentsSectionProps) {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
-  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch comments
-  const fetchComments = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/ideas/${ideaId}/comments`);
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data.comments || []);
-      }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ideaId]);
-
-  useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+  // RTK Query hooks - comments are now cached
+  const { data, isLoading } = useGetCommentsQuery(ideaId);
+  const [postComment, { isLoading: isSubmitting }] = usePostCommentMutation();
+  
+  const comments = data?.comments || [];
 
   // Post a new comment
   const handleSubmit = async () => {
     if (!commentText.trim() || !isSignedIn || isSubmitting) return;
 
-    setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/ideas/${ideaId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: commentText.trim() }),
-      });
-      
-      if (response.ok) {
-        setCommentText('');
-        await fetchComments();
-      }
+      await postComment({ ideaId, content: commentText.trim() }).unwrap();
+      setCommentText('');
     } catch (error) {
       console.error("Error posting comment:", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   // Post a reply
   const handleReply = async (parentId: number, content: string) => {
-    const response = await fetch(`/api/ideas/${ideaId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, parent_id: parentId }),
-    });
-    
-    if (response.ok) {
-      await fetchComments();
+    try {
+      await postComment({ ideaId, content, parentId }).unwrap();
+    } catch (error) {
+      console.error("Error posting reply:", error);
     }
   };
 

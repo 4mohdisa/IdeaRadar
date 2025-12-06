@@ -1,30 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { Idea } from "@/lib/types";
 import { IdeaCard } from "@/components/ui/idea-card";
+import { useGetBookmarksQuery } from "@/lib/store";
 
 export default function BookmarksPage() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchBookmarks = async () => {
-      try {
-        const response = await fetch('/api/dashboard/bookmarks');
-        if (response.ok) {
-          const data = await response.json();
-          setIdeas(data.ideas || []);
-        }
-      } catch (error) {
-        console.error("Error fetching bookmarks:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBookmarks();
-  }, []);
+  const { data, isLoading: loading } = useGetBookmarksQuery({ page: 1 });
+  
+  const ideas = data?.bookmarks?.map(b => b.idea) || [];
 
   return (
     <div className="container py-8">

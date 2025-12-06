@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { auth } from "@clerk/nextjs/server";
+import { analyzeIdea } from "@/lib/ai/gemini";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -156,10 +157,10 @@ export async function PATCH(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First check if the idea belongs to the user
+    // First fetch the existing idea to check ownership and get current values
     const { data: existingIdea, error: fetchError } = await supabase
       .from('ideas')
-      .select('user_id')
+      .select('user_id, title, description, body_text, source')
       .eq('id', id)
       .maybeSingle();
 
@@ -182,6 +183,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
+    // Check if content has changed (title, description, or body_text)
+    const contentChanged = 
+      (title !== undefined && title !== existingIdea.title) ||
+      (description !== undefined && description !== existingIdea.description) ||
+      (body_text !== undefined && body_text !== existingIdea.body_text);
+
     // Build update object
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -191,6 +198,38 @@ export async function PATCH(
     if (description !== undefined) updateData.description = description;
     if (body_text !== undefined) updateData.body_text = body_text;
     if (status !== undefined) updateData.status = status;
+
+    // Re-evaluate score and regenerate AI summary if content changed
+    if (contentChanged) {
+      const finalTitle = title ?? existingIdea.title;
+      const finalDescription = description ?? existingIdea.description;
+      const finalBodyText = body_text ?? existingIdea.body_text;
+
+      try {
+        console.log(`Re-evaluating idea ${id} after content change...`);
+        
+        const analysis = await analyzeIdea(
+          finalTitle,
+          finalDescription,
+          finalBodyText,
+          { source: existingIdea.source === 'reddit' ? 'reddit' : 'community' }
+        );
+
+        // Update with new AI analysis
+        updateData.market_potential_score = analysis.market_potential_score;
+        updateData.description = analysis.ai_summary; // Use AI-generated summary
+        
+        // Store score breakdown if we have the column (optional)
+        if (analysis.score_breakdown) {
+          updateData.score_breakdown = analysis.score_breakdown;
+        }
+        
+        console.log(`Re-evaluation complete. New score: ${analysis.market_potential_score}`);
+      } catch (aiError) {
+        // Log but don't fail the update if AI analysis fails
+        console.error("AI re-evaluation failed, continuing with update:", aiError);
+      }
+    }
 
     // Update the idea
     const { data: updatedIdea, error: updateError } = await supabase
@@ -207,7 +246,8 @@ export async function PATCH(
 
     return NextResponse.json({ 
       success: true, 
-      idea: updatedIdea 
+      idea: updatedIdea,
+      reEvaluated: contentChanged
     });
   } catch (error) {
     console.error("Error in PATCH /api/ideas/[id]:", error);

@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import StoreProvider from "./StoreProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -122,9 +123,11 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${inter.variable} ${orbitron.variable}`}>
         <body className="flex min-h-screen flex-col" suppressHydrationWarning>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <StoreProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </StoreProvider>
         </body>
       </html>
     </ClerkProvider>

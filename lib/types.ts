@@ -38,11 +38,28 @@ export interface RedditPost {
   thumbnail?: string;
 }
 
+// Score breakdown for transparency
+export interface ScoreBreakdown {
+  market_demand: number;
+  market_timing: number;
+  revenue_clarity: number;
+  scalability: number;
+  unique_value: number;
+  competitive_moat: number;
+  technical_feasibility: number;
+  execution_complexity: number;
+  market_risk: number;
+  regulatory_risk: number;
+}
+
 // Gemini AI processed data
 export interface GeminiProcessedIdea {
   enhanced_title: string;
   description: string;
   market_potential_score: number;
+  score_breakdown?: ScoreBreakdown;
+  strengths?: string[];
+  challenges?: string[];
 }
 
 // Combined idea (Reddit + Gemini + User submissions)

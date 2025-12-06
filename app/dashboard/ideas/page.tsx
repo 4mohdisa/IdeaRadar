@@ -7,53 +7,34 @@ import { IoMdAdd } from "react-icons/io";
 import { HiDotsVertical } from "react-icons/hi";
 import { MdEdit, MdDelete } from "react-icons/md";
 import { FiFile } from "react-icons/fi";
-import type { Idea } from "@/lib/types";
 import { IdeaCard } from "@/components/ui/idea-card";
 import { PageTransition } from "@/components/ui/page-transition";
+import { useGetUserIdeasQuery, useDeleteIdeaMutation } from "@/lib/store";
 
 export default function MyIdeasPage() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
   const [filter, setFilter] = useState<"all" | "published" | "draft" | "archived">("all");
-  const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchIdeas = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/dashboard/ideas?status=${filter}`);
-        if (response.ok) {
-          const data = await response.json();
-          setIdeas(data.ideas || []);
-        }
-      } catch (error) {
-        console.error("Error fetching ideas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchIdeas();
-  }, [filter]);
+  const { data, isLoading: loading } = useGetUserIdeasQuery({ 
+    page: 1, 
+    status: filter === "all" ? undefined : filter 
+  });
+  const [deleteIdea] = useDeleteIdeaMutation();
+  
+  const ideas = data?.ideas || [];
 
   const handleDelete = async (ideaId: string) => {
     if (!confirm("Are you sure you want to delete this idea?")) return;
     
-    setOpenMenuId(null); // Close menu
-    setDeletingId(ideaId); // Start delete animation
+    setOpenMenuId(null);
+    setDeletingId(ideaId);
     
     try {
-      const response = await fetch(`/api/ideas/${ideaId}`, { method: 'DELETE' });
-      if (response.ok) {
-        // Wait for animation to complete before removing from state
-        setTimeout(() => {
-          setIdeas(ideas.filter((idea) => idea.id !== ideaId));
-          setDeletingId(null);
-        }, 400);
-      } else {
+      await deleteIdea(ideaId).unwrap();
+      setTimeout(() => {
         setDeletingId(null);
-        alert("Failed to delete idea");
-      }
+      }, 400);
     } catch (error) {
       console.error("Error deleting idea:", error);
       setDeletingId(null);

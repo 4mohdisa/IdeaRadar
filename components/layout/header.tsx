@@ -9,11 +9,13 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
+  useAuth,
 } from "@clerk/nextjs";
 import { IconButton } from "@/components/ui/button";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isLoaded } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,42 +42,51 @@ export function Header() {
           >
             Leaderboard
           </Link>
-          {/* Auth-aware navigation */}
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="text-sm text-text-muted transition-smooth hover:text-accent">
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect">
-                Get Started
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          
-          <SignedIn>
-            <Link
-              href="/dashboard"
-              className="text-sm text-text-muted transition-smooth hover:text-accent"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/create"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect"
-            >
-              Create Idea
-            </Link>
-            <UserButton 
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8 transition-transform hover:scale-105"
-                }
-              }}
-            />
-          </SignedIn>
+          {/* Auth-aware navigation - show skeleton while loading */}
+          {!isLoaded ? (
+            <div className="flex items-center gap-6">
+              <div className="h-4 w-16 animate-pulse rounded bg-border" />
+              <div className="h-8 w-24 animate-pulse rounded-lg bg-border" />
+            </div>
+          ) : (
+            <>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="text-sm text-text-muted transition-smooth hover:text-accent">
+                    Sign In
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect">
+                    Get Started
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              
+              <SignedIn>
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-text-muted transition-smooth hover:text-accent"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/create"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 hover-lift press-effect"
+                >
+                  Create Idea
+                </Link>
+                <UserButton 
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "h-8 w-8 transition-transform hover:scale-105"
+                    }
+                  }}
+                />
+              </SignedIn>
+            </>
+          )}
         </nav>
 
         {/* Mobile Menu Button */}
@@ -132,57 +143,66 @@ export function Header() {
           >
             Leaderboard
           </Link>
-          {/* Auth-aware mobile navigation */}
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button 
-                className="text-sm text-text-muted transition-smooth hover:text-accent text-left animate-slide-in-left"
-                style={{ animationDelay: "150ms" }}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button 
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
-                style={{ animationDelay: "200ms" }}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Get Started
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          
-          <SignedIn>
-            <Link
-              href="/dashboard"
-              className="text-sm text-text-muted transition-smooth hover:text-accent animate-slide-in-left"
-              style={{ animationDelay: "150ms" }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/create"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
-              style={{ animationDelay: "200ms" }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Create Idea
-            </Link>
-            <div className="flex items-center gap-2 animate-slide-in-left" style={{ animationDelay: "250ms" }}>
-              <UserButton 
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "h-8 w-8"
-                  }
-                }}
-              />
-              <span className="text-sm text-text-muted">Account</span>
+          {/* Auth-aware mobile navigation - show skeleton while loading */}
+          {!isLoaded ? (
+            <div className="flex flex-col gap-4">
+              <div className="h-4 w-20 animate-pulse rounded bg-border" />
+              <div className="h-8 w-28 animate-pulse rounded-lg bg-border" />
             </div>
-          </SignedIn>
+          ) : (
+            <>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button 
+                    className="text-sm text-text-muted transition-smooth hover:text-accent text-left animate-slide-in-left"
+                    style={{ animationDelay: "150ms" }}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign In
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button 
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
+                    style={{ animationDelay: "200ms" }}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Get Started
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              
+              <SignedIn>
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-text-muted transition-smooth hover:text-accent animate-slide-in-left"
+                  style={{ animationDelay: "150ms" }}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/create"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect animate-slide-in-left"
+                  style={{ animationDelay: "200ms" }}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Create Idea
+                </Link>
+                <div className="flex items-center gap-2 animate-slide-in-left" style={{ animationDelay: "250ms" }}>
+                  <UserButton 
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "h-8 w-8"
+                      }
+                    }}
+                  />
+                  <span className="text-sm text-text-muted">Account</span>
+                </div>
+              </SignedIn>
+            </>
+          )}
         </nav>
       </div>
     </header>

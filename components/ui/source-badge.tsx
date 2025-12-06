@@ -2,7 +2,7 @@ import { FaReddit } from "react-icons/fa";
 import { HiUserCircle } from "react-icons/hi2";
 
 interface SourceBadgeProps {
-  source: "reddit" | "user";
+  source: "reddit" | "user" | "community" | string;
   subreddit?: string;
   size?: "sm" | "md";
 }

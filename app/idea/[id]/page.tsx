@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
 import Script from "next/script";
-import type { Idea } from "@/lib/types";
-import { use } from "react";
 import { ScoreMeter } from "@/components/ui/score-meter";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { VoteButtons } from "@/components/ui/vote-buttons";
@@ -14,55 +12,28 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CommentsSection } from "@/components/ui/comments-section";
 import { PageTransition } from "@/components/ui/page-transition";
 import { MdEdit, MdVisibilityOff } from "react-icons/md";
+import { 
+  useGetIdeaByIdQuery, 
+  useGetUserVoteQuery, 
+  useGetBookmarkStatusQuery 
+} from "@/lib/store";
 
 export default function IdeaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [idea, setIdea] = useState<Idea | null>(null);
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(null);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchIdea = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/ideas/${id}`);
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Idea not found");
-          }
-          throw new Error("Failed to fetch idea");
-        }
-
-        const data = await response.json();
-        setIdea(data);
-        
-        // Fetch user's vote status
-        const voteRes = await fetch(`/api/ideas/${id}/vote`);
-        if (voteRes.ok) {
-          const voteData = await voteRes.json();
-          setUserVote(voteData.vote);
-        }
-        
-        // Fetch bookmark status
-        const bookmarkRes = await fetch(`/api/ideas/${id}/bookmark`);
-        if (bookmarkRes.ok) {
-          const bookmarkData = await bookmarkRes.json();
-          setIsBookmarked(bookmarkData.isBookmarked);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchIdea();
-  }, [id]);
+  
+  // RTK Query hooks - data is cached automatically
+  const { 
+    data: idea, 
+    isLoading: loading, 
+    isError,
+    error 
+  } = useGetIdeaByIdQuery(id);
+  
+  const { data: voteData } = useGetUserVoteQuery(id);
+  const { data: bookmarkData } = useGetBookmarkStatusQuery(id);
+  
+  const userVote = voteData?.vote ?? null;
+  const isBookmarked = bookmarkData?.isBookmarked ?? false;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -130,7 +101,7 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  if (error || !idea) {
+  if (isError || !idea) {
     return (
       <PageTransition>
         <div className="container px-4 py-8 sm:px-6 lg:px-8">
@@ -144,7 +115,7 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
             Back to Ideas
           </Link>
           <div className="animate-scale-in overflow-hidden rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-center sm:p-8">
-            <p className="break-words text-red-400">Error: {error || "Idea not found"}</p>
+            <p className="break-words text-red-400">Error: Idea not found</p>
             <Link
               href="/"
               className="mt-4 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-smooth hover:opacity-90 press-effect"

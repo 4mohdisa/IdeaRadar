@@ -15,45 +15,65 @@ function getGeminiClient(): GoogleGenerativeAI {
   return genAI;
 }
 
-// Process a Reddit post with Gemini to generate enhanced content
+// Process a Reddit post with Gemini 2.5 Flash to generate enhanced content
 export async function processPostWithGemini(post: RedditPost): Promise<GeminiProcessedIdea> {
   try {
     const ai = getGeminiClient();
-    const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+    const model = ai.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1500,
+        responseMimeType: "application/json",
+      }
+    });
 
-    const prompt = `You are an expert startup idea analyzer. Analyze the following startup/business idea post from Reddit and provide:
+    const prompt = `You are an expert startup idea analyzer. Analyze this Reddit post and provide a professional assessment.
 
-1. An improved, professional title (max 100 characters)
-2. A neutral, structured description following this format:
-   - Problem: What problem does it solve?
-   - Solution: What is the proposed solution?
-   - Target Audience: Who is this for?
-   - Potential Use Case: How would it be used?
-3. A Market Potential Score (1-100) based on:
-   - Relevance in modern markets (25 points)
-   - Scalability potential (25 points)
-   - Monetization simplicity (25 points)
-   - Competition level (25 points - lower competition = higher score)
+SCORING CRITERIA (each 0-10 points, total 0-100):
+- market_demand: Current market demand for this solution
+- market_timing: Is now the right time?
+- revenue_clarity: Clear monetization path
+- scalability: Growth potential
+- unique_value: Differentiation level
+- competitive_moat: Defensibility
+- technical_feasibility: Can it be built?
+- execution_complexity: Ease of execution (10 = easy)
+- market_risk: Market adoption confidence (10 = confident)
+- regulatory_risk: Regulatory safety (10 = safe)
 
-Original Post Title: ${post.title}
-Original Post Content: ${post.selftext}
-Subreddit: ${post.subreddit}
-Upvotes: ${post.score}
+Reddit Post:
+Title: ${post.title}
+Content: ${post.selftext}
+Subreddit: r/${post.subreddit}
+Upvotes: ${post.score} (consider as community validation signal)
 
-Respond in JSON format:
+Return JSON:
 {
-  "enhanced_title": "your improved title here",
-  "description": "your structured description here",
-  "market_potential_score": 75
-}
-
-Ensure your description is concise (200-300 words), professional, and objective.`;
+  "enhanced_title": "<improved professional title, max 100 chars>",
+  "description": "<structured description with Problem, Solution, Target Audience, Use Case - 200-300 words>",
+  "market_potential_score": <total score 0-100>,
+  "score_breakdown": {
+    "market_demand": <0-10>,
+    "market_timing": <0-10>,
+    "revenue_clarity": <0-10>,
+    "scalability": <0-10>,
+    "unique_value": <0-10>,
+    "competitive_moat": <0-10>,
+    "technical_feasibility": <0-10>,
+    "execution_complexity": <0-10>,
+    "market_risk": <0-10>,
+    "regulatory_risk": <0-10>
+  },
+  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "challenges": ["<challenge 1>", "<challenge 2>", "<challenge 3>"]
+}`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
 
-    // Extract JSON from response (handle markdown code blocks if present)
+    // Extract JSON from response
     let jsonText = text.trim();
     if (jsonText.startsWith('```json')) {
       jsonText = jsonText.replace(/```json\n?/, '').replace(/\n?```$/, '');
@@ -76,9 +96,12 @@ Ensure your description is concise (200-300 words), professional, and objective.
     const score = Math.max(1, Math.min(100, parsed.market_potential_score));
 
     return {
-      enhanced_title: parsed.enhanced_title.substring(0, 150), // Enforce max length
+      enhanced_title: parsed.enhanced_title.substring(0, 150),
       description: parsed.description,
       market_potential_score: score,
+      score_breakdown: parsed.score_breakdown,
+      strengths: parsed.strengths,
+      challenges: parsed.challenges,
     };
   } catch (error) {
     console.error('Error processing post with Gemini:', error);

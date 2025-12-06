@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { DashboardStats } from "@/lib/types";
+import { useGetDashboardStatsQuery } from "@/lib/store";
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
+  const { data: stats, isLoading: loading } = useGetDashboardStatsQuery();
+
+  const defaultStats = {
     total_ideas: 0,
     published_ideas: 0,
     draft_ideas: 0,
@@ -15,25 +16,9 @@ export default function DashboardPage() {
     ideas_downvoted: 0,
     ideas_commented: 0,
     ideas_bookmarked: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  };
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('/api/dashboard/stats');
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+  const displayStats = stats || defaultStats;
 
   const StatCard = ({
     title,
@@ -117,7 +102,7 @@ export default function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Ideas"
-            value={stats.total_ideas}
+            value={displayStats.total_ideas}
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -131,7 +116,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Published"
-            value={stats.published_ideas}
+            value={displayStats.published_ideas}
             color="green-400"
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
@@ -145,7 +130,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Drafts"
-            value={stats.draft_ideas}
+            value={displayStats.draft_ideas}
             color="yellow-400"
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
@@ -155,7 +140,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Total Upvotes"
-            value={stats.total_upvotes_received}
+            value={displayStats.total_upvotes_received}
             color="green-400"
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
@@ -172,7 +157,7 @@ export default function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Ideas Upvoted"
-            value={stats.ideas_upvoted}
+            value={displayStats.ideas_upvoted}
             color="green-400"
             icon={
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +172,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Ideas Downvoted"
-            value={stats.ideas_downvoted}
+            value={displayStats.ideas_downvoted}
             color="red-400"
             icon={
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,7 +187,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Comments Made"
-            value={stats.ideas_commented}
+            value={displayStats.ideas_commented}
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -215,7 +200,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Bookmarked Ideas"
-            value={stats.ideas_bookmarked}
+            value={displayStats.ideas_bookmarked}
             icon={
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />

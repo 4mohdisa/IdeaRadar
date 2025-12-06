@@ -1,34 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import type { Idea } from "@/lib/types";
 import { IdeaCard } from "@/components/ui/idea-card";
+import { useGetActivityQuery } from "@/lib/store";
 
 type ActivityTab = "upvoted" | "downvoted" | "commented";
 
 export default function ActivityPage() {
   const [activeTab, setActiveTab] = useState<ActivityTab>("upvoted");
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchActivity = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/dashboard/activity?type=${activeTab}`);
-        if (response.ok) {
-          const data = await response.json();
-          setIdeas(data.ideas || []);
-        }
-      } catch (error) {
-        console.error("Error fetching activity:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchActivity();
-  }, [activeTab]);
+  
+  const { data, isLoading: loading } = useGetActivityQuery({ 
+    type: activeTab, 
+    page: 1 
+  });
+  
+  const ideas = data?.ideas || [];
 
   const tabs = [
     {
